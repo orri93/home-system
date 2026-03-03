@@ -3,7 +3,7 @@
 services:
   actual-server:
     image: actualbudget/actual-server:latest
-    ccontainer_name: actual_server
+    container_name: actual_server
     restart: unless-stopped
     env_file:
       - actual.env
