@@ -1,0 +1,28 @@
+#name: home-system
+
+services:
+  actual-server:
+    image: actualbudget/actual-server:latest
+    ccontainer_name: actual_server
+    restart: unless-stopped
+    env_file:
+      - actual.env
+    ports:
+      - "${ACTUAL_HOST_PORT:-5006}:5006"
+    volumes:
+      - ./actual-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "node src/scripts/health-check.js"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - home-system-net
+
+volumes:
+  n8n-data:
+
+networks:
+  default:
+    name: home-system-net
