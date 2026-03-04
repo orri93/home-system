@@ -17,8 +17,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
-    networks:
-      - home-system-net
 
 volumes:
   n8n-data:
