@@ -1,0 +1,95 @@
+#name: home-system-inventree
+
+services:
+  inventree-db:
+    image: postgres:17
+    container_name: inventree-db
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "5432"
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdb
+      POSTGRES_USER: ${INVENTREE_DB_USER:?Set INVENTREE_DB_USER in .env}
+      POSTGRES_PASSWORD: ${INVENTREE_DB_PASSWORD:?Set INVENTREE_DB_PASSWORD in .env}
+      POSTGRES_DB: ${INVENTREE_DB_NAME:-inventree}
+    volumes:
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  inventree-cache:
+    image: redis:7-alpine
+    container_name: inventree-cache
+    restart: unless-stopped
+    env_file:
+      - .env
+    expose:
+      - "6379"
+    volumes:
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  inventree-server:
+    image: inventree/inventree:${INVENTREE_TAG:-stable}
+    container_name: inventree-server
+    restart: unless-stopped
+    depends_on:
+      inventree-db:
+        condition: service_healthy
+      inventree-cache:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      INVENTREE_SERVER: http://inventree-server:${INVENTREE_WEB_PORT:-8000}
+    expose:
+      - "${INVENTREE_WEB_PORT:-8000}"
+    volumes:
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}:/home/inventree/data
+
+  inventree-worker:
+    image: inventree/inventree:${INVENTREE_TAG:-stable}
+    container_name: inventree-worker
+    command: invoke worker
+    restart: unless-stopped
+    depends_on:
+      inventree-server:
+        condition: service_started
+    env_file:
+      - .env
+    volumes:
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}:/home/inventree/data
+
+  inventree-proxy:
+    image: caddy:alpine
+    container_name: inventree-proxy
+    restart: unless-stopped
+    depends_on:
+      inventree-server:
+        condition: service_started
+    env_file:
+      - .env
+    ports:
+      - "${INVENTREE_HTTP_PORT:-58080}:80"
+      - "${INVENTREE_HTTPS_PORT:-58443}:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/static:/var/www/static
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/media:/var/www/media
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/caddy/log:/var/log/caddy
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/caddy/data:/data
+      - ${INVENTREE_EXT_VOLUME:-./inventree-data}/caddy/config:/config
+
+networks:
+  default:
+    name: home-system-net

@@ -1,4 +1,4 @@
-#name: home-system
+#name: home-system-actual
 
 services:
   actual-server:
