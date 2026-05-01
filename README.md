@@ -115,8 +115,12 @@ Path: `projects/inventree/edge`
 1. Create `.env` from `.env.example`
 2. Update at least:
 	- `INVENTREE_DB_PASSWORD`
-	- `INVENTREE_SITE_URL`
+	- `INVENTREE_SITE_URL` (host only, e.g. `http://debgosa`)
 	- `INVENTREE_HTTP_PORT` / `INVENTREE_HTTPS_PORT` if needed
+
+Important:
+With the current `Caddyfile`, do not include a custom port in `INVENTREE_SITE_URL`.
+Use `INVENTREE_HTTP_PORT` and `INVENTREE_HTTPS_PORT` to control exposed host ports.
 
 ### First-Time Database Setup
 
@@ -126,11 +130,15 @@ Run database migrations before first start:
 docker compose -p hs-inventree -f projects/inventree/edge/docker-compose.yml --env-file projects/inventree/edge/.env run --rm inventree-server invoke update
 ```
 
-Create the admin account:
+Create the admin account (interactive command):
 
 ```powershell
 docker compose -p hs-inventree -f projects/inventree/edge/docker-compose.yml --env-file projects/inventree/edge/.env run --rm inventree-server invoke superuser
 ```
+
+If you want non-interactive first-run bootstrap, set `INVENTREE_ADMIN_USER`,
+`INVENTREE_ADMIN_PASSWORD`, and `INVENTREE_ADMIN_EMAIL` in `.env` and run
+`invoke update`, then remove those values from `.env`.
 
 ### Start
 
