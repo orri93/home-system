@@ -56,6 +56,12 @@ services:
       - "${INVENTREE_WEB_PORT:-8000}"
     volumes:
       - ${INVENTREE_EXT_VOLUME:-./inventree-data}:/home/inventree/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${INVENTREE_WEB_PORT:-8000}/api/inventree/info"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   inventree-worker:
     image: inventree/inventree:${INVENTREE_TAG:-stable}
@@ -76,7 +82,7 @@ services:
     restart: unless-stopped
     depends_on:
       inventree-server:
-        condition: service_started
+        condition: service_healthy
     env_file:
       - .env
     ports:
